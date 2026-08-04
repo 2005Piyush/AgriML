@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgriML — AI-Powered Fertilizer Recommendation System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0F172A;--card:#1A253C;--accent1:#00C97B;--accent2:#38BDF8;
+  --accent3:#F5A623;--accent4:#E84D8A;--purple:#A78BFA;
+  --white:#fff;--light:#CBD5E1;--dim:#8B9CB2;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--white);overflow:hidden;height:100vh;width:100vw}
+
+/* ── Slide Container ── */
+.deck{position:relative;width:100vw;height:100vh}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;padding:50px 60px;opacity:0;pointer-events:none;transition:none;overflow:hidden}
+.slide.active{opacity:1;pointer-events:auto;z-index:10}
+
+/* ── Slide Transitions ── */
+.slide.enter-right{animation:enterRight .6s ease forwards}
+.slide.exit-left{animation:exitLeft .6s ease forwards;z-index:5}
+.slide.enter-left{animation:enterLeft .6s ease forwards}
+.slide.exit-right{animation:exitRight .6s ease forwards;z-index:5}
+
+@keyframes enterRight{from{opacity:0;transform:translateX(80px) scale(.96)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes exitLeft{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-80px) scale(.96)}}
+@keyframes enterLeft{from{opacity:0;transform:translateX(-80px) scale(.96)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes exitRight{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(80px) scale(.96)}}
+
+/* ── Pop-up Animations ── */
+@keyframes popUp{from{opacity:0;transform:translateY(40px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(25px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-50px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+@keyframes bounceIn{0%{opacity:0;transform:scale(.3)}50%{transform:scale(1.05)}70%{transform:scale(.95)}100%{opacity:1;transform:scale(1)}}
+
+.slide.active .pop{animation:popUp .5s ease both}
+.slide.active .fade-up{animation:fadeInUp .5s ease both}
+.slide.active .fade{animation:fadeIn .5s ease both}
+.slide.active .scale-in{animation:scaleIn .5s ease both}
+.slide.active .slide-left{animation:slideInLeft .5s ease both}
+.slide.active .slide-right{animation:slideInRight .5s ease both}
+.slide.active .bounce{animation:bounceIn .6s ease both}
+
+.d1{animation-delay:.1s!important}.d2{animation-delay:.2s!important}.d3{animation-delay:.3s!important}
+.d4{animation-delay:.4s!important}.d5{animation-delay:.5s!important}.d6{animation-delay:.6s!important}
+.d7{animation-delay:.7s!important}.d8{animation-delay:.8s!important}.d9{animation-delay:.9s!important}
+.d10{animation-delay:1s!important}.d11{animation-delay:1.1s!important}.d12{animation-delay:1.2s!important}
+
+/* ── Common Elements ── */
+.slide-title{font-size:2.4rem;font-weight:800;margin-bottom:4px}
+.accent-bar{width:100px;height:4px;background:var(--accent1);border-radius:2px;margin-bottom:8px}
+.subtitle{font-size:1.1rem;color:var(--dim);margin-bottom:30px}
+.card{background:var(--card);border-radius:16px;padding:28px;border:1.5px solid transparent}
+.card.green{border-color:var(--accent1)}.card.blue{border-color:var(--accent2)}
+.card.orange{border-color:var(--accent3)}.card.pink{border-color:var(--accent4)}
+.card.purple{border-color:var(--purple)}
+.row{display:flex;gap:24px;flex:1}.col{flex:1;display:flex;flex-direction:column}
+.section-title{font-size:1.2rem;font-weight:700;margin-bottom:14px}
+.bullet{color:var(--light);font-size:.88rem;line-height:1.8;padding-left:0}
+.bullet li{list-style:none;padding:2px 0}
+.bullet li::before{content:"→ ";color:var(--accent1);font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
+th{background:var(--accent1);color:var(--bg);padding:10px 12px;text-align:center;font-weight:600}
+td{padding:9px 12px;text-align:center;border-bottom:1px solid #1e2d4a}
+tr:nth-child(even){background:var(--card)}tr:nth-child(odd){background:#141F33}
+.icon-big{font-size:2.2rem;margin-bottom:6px;display:block;text-align:center}
+.stat-val{font-size:2rem;font-weight:800;color:var(--accent1)}
+.stat-label{font-size:.85rem;color:var(--light)}
+
+/* ── Navigation ── */
+.nav{position:fixed;bottom:24px;right:30px;display:flex;gap:10px;z-index:999}
+.nav button{background:var(--card);color:var(--white);border:1.5px solid var(--accent2);padding:10px 20px;border-radius:10px;cursor:pointer;font-size:.9rem;font-family:inherit;font-weight:600;transition:.2s}
+.nav button:hover{background:var(--accent2);color:var(--bg)}
+.btn-pdf{background:var(--accent1)!important;border-color:var(--accent1)!important;color:var(--bg)!important}
+.btn-pdf:hover{background:#00a866!important;border-color:#00a866!important}
+.progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--accent1),var(--accent2));transition:width .4s;z-index:999}
+.slide-counter{position:fixed;bottom:28px;left:30px;color:var(--dim);font-size:.85rem;z-index:999}
+
+/* decorative circles */
+.deco{position:absolute;border-radius:50%;opacity:.15;pointer-events:none}
+.deco-1{width:400px;height:400px;background:var(--accent1);top:-100px;right:-100px}
+.deco-2{width:300px;height:300px;background:var(--accent2);bottom:-80px;left:-80px}
+
+/* four-card grid */
+.card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;flex:1}
+.card-grid .card{text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.five-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;flex:1}
+.six-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;flex:1}
+.three-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;flex:1}
+.arch-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.arch-row{margin-bottom:10px}
+.arch-label{writing-mode:vertical-rl;font-size:.75rem;font-weight:700;padding:8px}
+
+/* ── Print / PDF Styles ── */
+@media print{
+  @page{size:landscape;margin:0}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
+  body{overflow:visible;height:auto;width:auto;background:var(--bg)}
+  .nav,.progress,.slide-counter{display:none!important}
+  .deck{position:static;height:auto;width:100%}
+  .slide{
+    position:relative!important;
+    opacity:1!important;
+    pointer-events:auto!important;
+    display:flex!important;
+    width:100vw;
+    height:100vh;
+    min-height:100vh;
+    padding:50px 60px;
+    page-break-after:always;
+    break-after:page;
+    overflow:hidden;
+    box-sizing:border-box;
+  }
+  .slide:last-child{page-break-after:avoid;break-after:avoid}
+  /* Reset slide transition classes for print */
+  .slide.enter-right,.slide.exit-left,.slide.enter-left,.slide.exit-right{animation:none!important;transform:none!important}
+  /* Show all animation elements */
+  .pop,.fade-up,.fade,.scale-in,.slide-left,.slide-right,.bounce{
+    opacity:1!important;
+    transform:none!important;
+    animation:none!important;
+  }
+  img{max-width:100%;max-height:100%;object-fit:contain}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="slide-counter" id="counter">1 / 22</div>
+<div class="nav">
+  <button onclick="prev()">← Prev</button>
+  <button onclick="next()">Next →</button>
+  <button class="btn-pdf" onclick="downloadPDF()">⬇ Download PDF</button>
+</div>
+
+<div class="deck" id="deck">
+
+<!-- ═══ SLIDE 1: Title ═══ -->
+<div class="slide active" data-bg>
+  <div class="deco deco-1"></div>
+  <div class="deco deco-2"></div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div class="bounce d1" style="font-size:3.5rem;font-weight:900;color:var(--accent1)">🌾 AgriML</div>
+    <div class="pop d2" style="font-size:2rem;font-weight:700;margin-top:12px">AI-Powered Fertilizer Recommendation System</div>
+    <div class="fade-up d3" style="color:var(--dim);font-size:1.1rem;margin-top:12px">Machine Learning • Climate-Aware • Sustainable Farming</div>
+    <div class="fade-up d5" style="color:var(--accent2);margin-top:30px;font-size:1rem">Client-Side • Browser-Based • Zero Server Dependencies</div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 2: Problem ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">The Problem</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Why do farmers need intelligent fertilizer recommendations?</div>
+  <div class="row">
+    <div class="col fade-up d3">
+      <ul class="bullet" style="font-size:.95rem;line-height:2.2">
+        <li>Over-fertilization wastes money and pollutes groundwater</li>
+        <li>Under-fertilization leads to poor crop yields and food insecurity</li>
+        <li>Nutrient imbalance locks out uptake — too much of one blocks others</li>
+        <li>Climate variability changes optimal application timing & quantity</li>
+        <li>Manual soil testing is expensive and infrequent for small-hold farmers</li>
+        <li>No easy access to agronomist expertise in rural India</li>
+      </ul>
+    </div>
+    <div class="col" style="max-width:380px">
+      <div class="card orange pop d4" style="margin-bottom:12px"><span class="stat-val">30%</span><span class="stat-label">of global fertilizer is wasted</span></div>
+      <div class="card orange pop d5" style="margin-bottom:12px"><span class="stat-val">₹8,000 Cr</span><span class="stat-label">annual loss to Indian farmers</span></div>
+      <div class="card orange pop d6" style="margin-bottom:12px"><span class="stat-val">10 Crops</span><span class="stat-label">supported by AgriML</span></div>
+      <div class="card orange pop d7"><span class="stat-val">7 Fertilizers</span><span class="stat-label">types covered in the model</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 3: Solution Overview ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Our Solution: AgriML</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">An end-to-end ML pipeline running entirely in the browser</div>
+  <div class="card-grid">
+    <div class="card green pop d3"><span class="icon-big">🧪</span><div class="section-title" style="color:var(--accent1)">Data Input</div><div style="color:var(--light);font-size:.85rem">Soil NPK, pH, moisture, temperature, rainfall, humidity, crop type</div></div>
+    <div class="card blue pop d4"><span class="icon-big">⚙️</span><div class="section-title" style="color:var(--accent2)">ML Engine</div><div style="color:var(--light);font-size:.85rem">Random Forest Classifier + Gradient Boosting Regressor</div></div>
+    <div class="card orange pop d5"><span class="icon-big">📊</span><div class="section-title" style="color:var(--accent3)">Optimization</div><div style="color:var(--light);font-size:.85rem">Quantity, cost, and environmental impact scoring</div></div>
+    <div class="card pink pop d6"><span class="icon-big">🌦️</span><div class="section-title" style="color:var(--accent4)">Climate Aware</div><div style="color:var(--light);font-size:.85rem">7-day forecast adjusts timing and quantity recommendations</div></div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 4: Architecture ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">System Architecture</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">12 interconnected modules — 100% client-side JavaScript</div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div class="card green scale-in d3" style="padding:14px;text-align:center;font-size:.78rem"><b>dataset.js</b><br>Synthetic Data Generator</div>
+        <div class="card green scale-in d4" style="padding:14px;text-align:center;font-size:.78rem"><b>preprocessing.js</b><br>Imputation + Normalization</div>
+        <div class="card blue scale-in d5" style="padding:14px;text-align:center;font-size:.78rem"><b>fertilizerModel.js</b><br>Random Forest Classifier</div>
+        <div class="card blue scale-in d6" style="padding:14px;text-align:center;font-size:.78rem"><b>yieldModel.js</b><br>Gradient Boosting Regressor</div>
+      </div>
+      <div class="fade d4" style="color:var(--accent1);font-weight:700;font-size:.75rem;width:70px;text-align:center">Data<br>Layer</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div class="card orange scale-in d5" style="padding:14px;text-align:center;font-size:.78rem"><b>climateEngine.js</b><br>Weather Forecast Engine</div>
+        <div class="card orange scale-in d6" style="padding:14px;text-align:center;font-size:.78rem"><b>optimizer.js</b><br>Quantity & Cost Optimizer</div>
+        <div class="card pink scale-in d7" style="padding:14px;text-align:center;font-size:.78rem"><b>riskPredictor.js</b><br>7-Category Risk Analysis</div>
+        <div class="card pink scale-in d8" style="padding:14px;text-align:center;font-size:.78rem"><b>sustainability.js</b><br>6-Component Sustainability</div>
+      </div>
+      <div class="fade d6" style="color:var(--accent3);font-weight:700;font-size:.75rem;width:70px;text-align:center">Analysis<br>Layer</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <div class="card purple scale-in d7" style="padding:14px;text-align:center;font-size:.78rem"><b>adaptiveLearning.js</b><br>Correction Factors</div>
+        <div class="card purple scale-in d8" style="padding:14px;text-align:center;font-size:.78rem"><b>feedbackLoop.js</b><br>Farmer Feedback</div>
+        <div class="card purple scale-in d9" style="padding:14px;text-align:center;font-size:.78rem"><b>soilHealth.js</b><br>Soil Degradation Tracker</div>
+      </div>
+      <div class="fade d8" style="color:var(--purple);font-weight:700;font-size:.75rem;width:70px;text-align:center">Learning<br>Layer</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 4b: ML Pipeline Flowchart ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">🔄 ML Pipeline — Full Architecture</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">End-to-end view: Data Input → Preprocessing → ML Models → Optimization → Output</div>
+  <div class="scale-in d3" style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 0">
+    <img src="AgriML_Model_Flowchart.png" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:14px;box-shadow:0 4px 40px rgba(0,201,123,.22)" alt="AgriML Model Flowchart">
+  </div>
+</div>
+
+<!-- ═══ SLIDE 5: Data Pipeline ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Data Pipeline & Preprocessing</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">From raw sensor data to model-ready features</div>
+  <div class="five-grid">
+    <div class="card green pop d3" style="text-align:center"><span class="icon-big">1️⃣</span><div class="section-title" style="color:var(--accent1)">Synthetic Data</div><div style="color:var(--light);font-size:.8rem">2,000 samples with seeded RNG for 10 crops × 7 fertilizers</div></div>
+    <div class="card blue pop d4" style="text-align:center"><span class="icon-big">2️⃣</span><div class="section-title" style="color:var(--accent2)">Imputation</div><div style="color:var(--light);font-size:.8rem">Mean for numerics; mode for crop type</div></div>
+    <div class="card orange pop d5" style="text-align:center"><span class="icon-big">3️⃣</span><div class="section-title" style="color:var(--accent3)">Normalization</div><div style="color:var(--light);font-size:.8rem">Min-Max scaling to [0, 1] for 8 numeric features</div></div>
+    <div class="card pink pop d6" style="text-align:center"><span class="icon-big">4️⃣</span><div class="section-title" style="color:var(--accent4)">One-Hot Encoding</div><div style="color:var(--light);font-size:.8rem">Crop → 10 binary columns (crop_Rice, crop_Wheat…)</div></div>
+    <div class="card purple pop d7" style="text-align:center"><span class="icon-big">5️⃣</span><div class="section-title" style="color:var(--purple)">Feature Vector</div><div style="color:var(--light);font-size:.8rem">8 numeric + 10 encoded = 18-dimensional vector</div></div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 5b: Data Pipeline Diagram ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">📊 Data Pipeline — Visual Flow</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">From raw sensor readings to an 18-dimensional model-ready feature vector</div>
+  <div class="scale-in d3" style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 0">
+    <img src="data_pipeline_flow.png" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:14px;box-shadow:0 4px 40px rgba(56,189,248,.22)" alt="Data Pipeline Flow">
+  </div>
+</div>
+
+<!-- ═══ SLIDE 6: Input Features ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Input Features</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">8 numeric features + 1 categorical feature (crop type)</div>
+  <div class="pop d3" style="flex:1;overflow:auto">
+    <table>
+      <tr><th>Feature</th><th>Type</th><th>Unit</th><th>Range</th><th>Description</th></tr>
+      <tr><td>Nitrogen (N)</td><td>Numeric</td><td>kg/ha</td><td>0–200</td><td>Available nitrogen in soil</td></tr>
+      <tr><td>Phosphorus (P)</td><td>Numeric</td><td>kg/ha</td><td>0–150</td><td>Available phosphorus in soil</td></tr>
+      <tr><td>Potassium (K)</td><td>Numeric</td><td>kg/ha</td><td>0–120</td><td>Available potassium in soil</td></tr>
+      <tr><td>pH</td><td>Numeric</td><td>—</td><td>3.0–10.0</td><td>Soil acidity / alkalinity</td></tr>
+      <tr><td>Moisture</td><td>Numeric</td><td>%</td><td>5–100</td><td>Soil moisture percentage</td></tr>
+      <tr><td>Temperature</td><td>Numeric</td><td>°C</td><td>-5–50</td><td>Ambient temperature</td></tr>
+      <tr><td>Rainfall</td><td>Numeric</td><td>mm</td><td>0–450</td><td>Monthly rainfall</td></tr>
+      <tr><td>Humidity</td><td>Numeric</td><td>%</td><td>10–100</td><td>Air humidity percent</td></tr>
+      <tr><td>Crop</td><td>Categorical</td><td>—</td><td>10 types</td><td>Rice, Wheat, Maize, Cotton, …</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 7: Crop Profiles ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Supported Crop Profiles</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Optimal ranges for each crop used during training and optimization</div>
+  <div class="pop d3" style="flex:1;overflow:auto">
+    <table>
+      <tr><th>Crop</th><th>N (kg/ha)</th><th>P (kg/ha)</th><th>K (kg/ha)</th><th>pH</th><th>Temp (°C)</th><th>Yield (t/ha)</th></tr>
+      <tr><td>Rice</td><td>60–120</td><td>30–60</td><td>30–60</td><td>5.5–7.0</td><td>22–35</td><td>3.0–8.0</td></tr>
+      <tr><td>Wheat</td><td>80–140</td><td>40–70</td><td>20–50</td><td>6.0–7.5</td><td>12–25</td><td>2.5–6.5</td></tr>
+      <tr><td>Maize</td><td>80–160</td><td>30–60</td><td>20–50</td><td>5.8–7.0</td><td>18–32</td><td>3.0–9.0</td></tr>
+      <tr><td>Cotton</td><td>60–120</td><td>20–50</td><td>20–40</td><td>6.0–7.5</td><td>20–35</td><td>1.5–4.0</td></tr>
+      <tr><td>Sugarcane</td><td>100–200</td><td>40–80</td><td>40–80</td><td>5.5–7.5</td><td>22–36</td><td>50–120</td></tr>
+      <tr><td>Soybean</td><td>20–50</td><td>40–70</td><td>20–50</td><td>6.0–7.0</td><td>20–30</td><td>1.5–4.0</td></tr>
+      <tr><td>Potato</td><td>80–150</td><td>50–90</td><td>60–100</td><td>5.0–6.5</td><td>15–25</td><td>15–40</td></tr>
+      <tr><td>Tomato</td><td>60–130</td><td>40–80</td><td>50–90</td><td>5.5–7.0</td><td>18–30</td><td>20–60</td></tr>
+      <tr><td>Groundnut</td><td>10–30</td><td>30–60</td><td>20–40</td><td>5.5–7.0</td><td>22–33</td><td>1.0–3.5</td></tr>
+      <tr><td>Barley</td><td>60–110</td><td>30–55</td><td>20–45</td><td>6.0–8.0</td><td>10–22</td><td>2.0–5.5</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 8: Random Forest ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Model 1: Random Forest Classifier</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Fertilizer type recommendation using ensemble of decision trees</div>
+  <div class="row">
+    <div class="card blue slide-left d3">
+      <div class="section-title" style="color:var(--accent2)">How It Works</div>
+      <ul class="bullet">
+        <li>Bootstrap Sampling — each tree gets random sample (with replacement)</li>
+        <li>Random Feature Subset — 60% features per split for diversity</li>
+        <li>Gini Impurity — measures split quality at each node</li>
+        <li>Majority Vote — final prediction aggregates all 15 trees</li>
+        <li>Confidence Score — % of trees agreeing on the top class</li>
+        <li>Class Probabilities — from aggregated leaf node counts</li>
+      </ul>
+    </div>
+    <div class="card green slide-right d4">
+      <div class="section-title" style="color:var(--accent1)">Hyperparameters</div>
+      <table>
+        <tr><th>Parameter</th><th>Value</th></tr>
+        <tr><td>Number of Trees</td><td>15</td></tr>
+        <tr><td>Max Depth</td><td>12</td></tr>
+        <tr><td>Min Samples/Leaf</td><td>3</td></tr>
+        <tr><td>Feature Subset Ratio</td><td>0.6 (60%)</td></tr>
+        <tr><td>Split Criterion</td><td>Gini Impurity</td></tr>
+        <tr><td>Output Classes</td><td>7 fertilizer types</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 8b: Random Forest Diagram ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">🌲 Random Forest — Visual Architecture</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Ensemble of 15 decision trees with bootstrap sampling &amp; majority voting</div>
+  <div class="scale-in d3" style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 0">
+    <img src="random_forest_diagram.png" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:14px;box-shadow:0 4px 40px rgba(56,189,248,.22)" alt="Random Forest Diagram">
+  </div>
+</div>
+
+<!-- ═══ SLIDE 9: Gradient Boosting ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Model 2: Gradient Boosting Regressor</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Yield prediction using sequential weak learners (decision stumps)</div>
+  <div class="row">
+    <div class="card orange slide-left d3">
+      <div class="section-title" style="color:var(--accent3)">Algorithm Steps</div>
+      <ul class="bullet">
+        <li>Initialize prediction with mean of all target yields</li>
+        <li>For each of 50 estimators:</li>
+        <li>&nbsp;&nbsp;a) Compute residuals (actual – prediction)</li>
+        <li>&nbsp;&nbsp;b) Fit a decision stump (depth 4) on residuals</li>
+        <li>&nbsp;&nbsp;c) predictions += learning_rate × stump output</li>
+        <li>Confidence = 1 – (RMSE / target std deviation)</li>
+        <li>Output: yield (t/ha), confidence, RMSE</li>
+      </ul>
+    </div>
+    <div class="card green slide-right d4">
+      <div class="section-title" style="color:var(--accent1)">Hyperparameters</div>
+      <table>
+        <tr><th>Parameter</th><th>Value</th></tr>
+        <tr><td>Num Estimators</td><td>50</td></tr>
+        <tr><td>Learning Rate</td><td>0.1</td></tr>
+        <tr><td>Max Depth (Stump)</td><td>4</td></tr>
+        <tr><td>Min Samples/Split</td><td>5</td></tr>
+        <tr><td>Loss Function</td><td>MSE</td></tr>
+        <tr><td>Output Unit</td><td>tons / hectare</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 9b: Gradient Boosting Diagram ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">📈 Gradient Boosting — Sequential Learning</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">50 decision stumps iteratively reducing yield prediction residuals</div>
+  <div class="scale-in d3" style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 0">
+    <img src="gradient_boosting_diagram.png" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:14px;box-shadow:0 4px 40px rgba(245,166,35,.22)" alt="Gradient Boosting Diagram">
+  </div>
+</div>
+
+<!-- ═══ SLIDE 10: Fertilizer Types ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Fertilizer Types & Nutrient Content</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">7 fertilizer types with nutrient composition and cost data</div>
+  <div class="pop d3" style="flex:1;overflow:auto">
+    <table>
+      <tr><th>Fertilizer</th><th>N (%)</th><th>P (%)</th><th>K (%)</th><th>Cost (₹/kg)</th><th>Best For</th></tr>
+      <tr><td>Urea</td><td>46</td><td>0</td><td>0</td><td>8</td><td>High N deficiency</td></tr>
+      <tr><td>DAP</td><td>18</td><td>46</td><td>0</td><td>28</td><td>N + P deficiency</td></tr>
+      <tr><td>NPK 10-26-26</td><td>10</td><td>26</td><td>26</td><td>22</td><td>P + K deficiency</td></tr>
+      <tr><td>NPK 20-20-20</td><td>20</td><td>20</td><td>20</td><td>25</td><td>Balanced needs</td></tr>
+      <tr><td>MOP</td><td>0</td><td>0</td><td>60</td><td>18</td><td>High K deficiency</td></tr>
+      <tr><td>SSP</td><td>0</td><td>16</td><td>0</td><td>10</td><td>Phosphorus deficiency</td></tr>
+      <tr><td>Amm. Sulphate</td><td>21</td><td>0</td><td>0</td><td>12</td><td>Acidic soils</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 11: Selection Logic ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Fertilizer Selection Logic</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Rule-based training label assignment — decision tree</div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:12px;padding-top:10px">
+    <div class="card blue bounce d3" style="padding:12px 30px;text-align:center;font-size:.9rem"><b>N &lt; 50 AND P &lt; 35 AND K &lt; 30?</b></div>
+    <div style="display:flex;gap:80px;width:100%;justify-content:center">
+      <div class="card green pop d4" style="padding:10px 20px;text-align:center"><b>Yes →</b> NPK 20-20-20<br><span style="font-size:.8rem;color:var(--dim)">(Balanced)</span></div>
+      <div class="card blue pop d5" style="padding:10px 20px;text-align:center"><b>No →</b> N &lt; 50 AND P &lt; 35?</div>
+    </div>
+    <div style="display:flex;gap:60px;width:100%;justify-content:center">
+      <div class="card green pop d5" style="padding:10px 20px;text-align:center"><b>Yes →</b> DAP<br><span style="font-size:.8rem;color:var(--dim)">(N + P)</span></div>
+      <div class="card blue pop d6" style="padding:10px 20px;text-align:center"><b>No →</b> N &lt; 50?</div>
+    </div>
+    <div style="display:flex;gap:40px;width:100%;justify-content:center">
+      <div class="card green pop d7" style="padding:10px 20px;text-align:center"><b>Yes →</b> Urea (N only)</div>
+      <div class="card orange pop d8" style="padding:10px 20px;text-align:center;font-size:.82rem"><b>No →</b> P&lt;35 & K&lt;30 → NPK 10-26-26 | K&lt;30 → MOP | P&lt;35 → SSP | pH&lt;5.5 → Am. Sul.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 12: Optimization ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Optimization Layer</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Calculating optimal quantity, cost, and environmental score</div>
+  <div class="three-grid">
+    <div class="card green pop d3">
+      <div class="section-title" style="color:var(--accent1)">💊 Quantity Optimization</div>
+      <ul class="bullet"><li>Compute N, P, K deficits vs crop profile</li><li>Quantity = max deficit / nutrient % × 100</li><li>Capped at 20–500 kg/hectare</li><li>Scales by user's land area</li></ul>
+    </div>
+    <div class="card orange pop d4">
+      <div class="section-title" style="color:var(--accent3)">💰 Cost Estimation</div>
+      <ul class="bullet"><li>Cost = quantity × cost-per-kg</li><li>Per-hectare and total cost</li><li>7 fertilizers with real market rates</li><li>Supports ₹ INR currency</li></ul>
+    </div>
+    <div class="card pink pop d5">
+      <div class="section-title" style="color:var(--accent4)">🌍 Environmental Impact</div>
+      <ul class="bullet"><li>Over-application penalty (+15)</li><li>High rainfall leaching risk (+20)</li><li>Soil acidification risk (+15)</li><li>High moisture runoff risk (+10)</li><li>Quantity-proportional impact (+0-40)</li></ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 13: Climate Engine ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Climate-Aware Decision Engine</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">7-day weather forecast modifies recommendations in real-time</div>
+  <div class="row">
+    <div class="card blue slide-left d3">
+      <div class="section-title" style="color:var(--accent2)">🌦️ Climate Impact Analysis</div>
+      <ul class="bullet">
+        <li>Generates 7-day weather forecast (temp, rain, humidity, wind)</li>
+        <li>Analyzes next 5 days for application window</li>
+        <li>Heavy rain (&gt;50mm) → reduce qty by 15%</li>
+        <li>Moderate rain (&gt;25mm) → reduce by 8%, split application</li>
+        <li>High temp (&gt;35°C) → apply early morning</li>
+        <li>High humidity (&gt;80%) → monitor for fungal diseases</li>
+        <li>Best Application Day scored by conditions</li>
+      </ul>
+    </div>
+    <div class="card orange slide-right d4">
+      <div class="section-title" style="color:var(--accent3)">Impact Adjustments</div>
+      <table>
+        <tr><th>Condition</th><th>Qty Multiplier</th><th>Risk</th></tr>
+        <tr><td>Rain &gt; 50mm</td><td>0.85 (−15%)</td><td>High</td></tr>
+        <tr><td>Rain 25–50mm</td><td>0.92 (−8%)</td><td>Medium</td></tr>
+        <tr><td>Temp &gt; 35°C</td><td>×0.90 (−10%)</td><td>Medium</td></tr>
+        <tr><td>Humidity &gt; 80%</td><td>No change</td><td>Low</td></tr>
+        <tr><td>Dry + Moderate</td><td>1.0 (Normal)</td><td>Low</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 13b: Climate Engine Diagram ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">🌦️ Climate Engine — Decision Flow</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">How 7-day weather forecast data adjusts quantity &amp; application timing</div>
+  <div class="scale-in d3" style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 0">
+    <img src="climate_engine_diagram.png" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:14px;box-shadow:0 4px 40px rgba(56,189,248,.22)" alt="Climate Engine Diagram">
+  </div>
+</div>
+
+<!-- ═══ SLIDE 14: Risk Prediction ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Risk Prediction Module</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">7 risk categories with severity, probability, and recommendations</div>
+  <div class="pop d3" style="flex:1;overflow:auto">
+    <table>
+      <tr><th>Risk Category</th><th>Trigger Condition</th><th>Severity</th><th>Recommendation</th></tr>
+      <tr><td>⚠️ Over-Fertilization</td><td>NPK excess &gt; 20 kg/ha</td><td>High/Med</td><td>Reduce application, soil test</td></tr>
+      <tr><td>⚖️ Nutrient Imbalance</td><td>N:P:K ratio gap &gt; 0.6</td><td>High/Med</td><td>Apply balanced NPK first</td></tr>
+      <tr><td>📉 Low Yield</td><td>Predicted &lt; 60% of avg</td><td>High/Med</td><td>Review soil, ensure irrigation</td></tr>
+      <tr><td>🧪 pH Stress</td><td>pH outside optimal ±1</td><td>High/Med</td><td>Lime (acidic) / Sulfur (alkaline)</td></tr>
+      <tr><td>🏜️ Drought Stress</td><td>Moisture &lt; 25%, Rain &lt; 30</td><td>High/Med</td><td>Irrigate, mulch</td></tr>
+      <tr><td>🌊 Nutrient Leaching</td><td>Rain &gt; 200mm, Qty &gt; 100</td><td>High/Med</td><td>Slow-release / split doses</td></tr>
+      <tr><td>🌡️ Temp Stress</td><td>Temp outside optimal ±5°C</td><td>Medium</td><td>Shade / row covers</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 14b: Risk Prediction Radar ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">⚠️ Risk Prediction — Radar Chart</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Visual risk assessment across all 7 risk categories with severity scores</div>
+  <div class="scale-in d3" style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 0">
+    <img src="risk_prediction_radar.png" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:14px;box-shadow:0 4px 40px rgba(232,77,138,.22)" alt="Risk Prediction Radar">
+  </div>
+</div>
+
+<!-- ═══ SLIDE 15: Sustainability ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Sustainability Index</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">6-component weighted scoring system with grades A–F</div>
+  <div class="six-grid">
+    <div class="card green pop d3" style="text-align:center;padding:16px"><span class="icon-big">🌿</span><div style="font-weight:700;color:var(--accent1);font-size:.85rem">Fertilizer Efficiency</div><div style="color:var(--accent3);font-size:.78rem;margin-top:6px">Weight: 20%</div><div style="color:var(--light);font-size:.75rem;margin-top:4px">100 − qty/5</div></div>
+    <div class="card green pop d4" style="text-align:center;padding:16px"><span class="icon-big">⚖️</span><div style="font-weight:700;color:var(--accent1);font-size:.85rem">Soil Balance</div><div style="color:var(--accent3);font-size:.78rem;margin-top:6px">Weight: 15%</div><div style="color:var(--light);font-size:.75rem;margin-top:4px">100 − total deficit</div></div>
+    <div class="card green pop d5" style="text-align:center;padding:16px"><span class="icon-big">🌍</span><div style="font-weight:700;color:var(--accent1);font-size:.85rem">Environmental</div><div style="color:var(--accent3);font-size:.78rem;margin-top:6px">Weight: 20%</div><div style="color:var(--light);font-size:.75rem;margin-top:4px">100 − env impact</div></div>
+    <div class="card green pop d6" style="text-align:center;padding:16px"><span class="icon-big">💧</span><div style="font-weight:700;color:var(--accent1);font-size:.85rem">Water Impact</div><div style="color:var(--accent3);font-size:.78rem;margin-top:6px">Weight: 15%</div><div style="color:var(--light);font-size:.75rem;margin-top:4px">Rain + moisture penalties</div></div>
+    <div class="card green pop d7" style="text-align:center;padding:16px"><span class="icon-big">🌾</span><div style="font-weight:700;color:var(--accent1);font-size:.85rem">Soil Health</div><div style="color:var(--accent3);font-size:.78rem;margin-top:6px">Weight: 15%</div><div style="color:var(--light);font-size:.75rem;margin-top:4px">From degradation tracker</div></div>
+    <div class="card green pop d8" style="text-align:center;padding:16px"><span class="icon-big">♻️</span><div style="font-weight:700;color:var(--accent1);font-size:.85rem">Carbon Footprint</div><div style="color:var(--accent3);font-size:.78rem;margin-top:6px">Weight: 15%</div><div style="color:var(--light);font-size:.75rem;margin-top:4px">100 − (qty×0.5)/2.5</div></div>
+  </div>
+  <div class="fade-up d9" style="text-align:center;color:var(--dim);margin-top:12px;font-size:.9rem">Grades: A (≥80) Excellent | B (≥65) Good | C (≥50) Fair | D (≥35) Poor | F (&lt;35) Critical</div>
+</div>
+
+<!-- ═══ SLIDE 16: Soil Health ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Soil Health Degradation Tracker</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Linear trend projection to predict nutrient decline over time</div>
+  <div class="row">
+    <div class="card green slide-left d3">
+      <div class="section-title" style="color:var(--accent1)">How It Works</div>
+      <ul class="bullet">
+        <li>Records soil N, P, K, pH, moisture for each analysis</li>
+        <li>Builds time-series history (up to 100 entries)</li>
+        <li>Linear regression on nutrient values over time</li>
+        <li>Predicts values 6+ months into the future</li>
+        <li>Classifies trend: Declining / Stable / Improving</li>
+        <li>Overall health score (0-100)</li>
+        <li>Generates urgency-based recommendations</li>
+      </ul>
+    </div>
+    <div class="card blue slide-right d4">
+      <div class="section-title" style="color:var(--accent2)">Health Score Ranges</div>
+      <table>
+        <tr><th>Nutrient</th><th>Optimal Low</th><th>Optimal High</th><th>Score Logic</th></tr>
+        <tr><td>Nitrogen</td><td>40 kg/ha</td><td>120 kg/ha</td><td>Dist. from midpoint</td></tr>
+        <tr><td>Phosphorus</td><td>30 kg/ha</td><td>70 kg/ha</td><td>Dist. from midpoint</td></tr>
+        <tr><td>Potassium</td><td>25 kg/ha</td><td>60 kg/ha</td><td>Dist. from midpoint</td></tr>
+        <tr><td>pH</td><td>5.5</td><td>7.5</td><td>Dist. from midpoint</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 16b: Soil Health Trend ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">🌱 Soil Health Trend Analysis</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">6-month nutrient decline projection with linear regression &amp; health scoring</div>
+  <div class="scale-in d3" style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 0">
+    <img src="soil_health_trend.png" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:14px;box-shadow:0 4px 40px rgba(0,201,123,.22)" alt="Soil Health Trend">
+  </div>
+</div>
+
+<!-- ═══ SLIDE 17: Adaptive Learning ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Adaptive Learning & Feedback Loop</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Continuous improvement through farmer feedback</div>
+  <div class="row">
+    <div class="card purple slide-left d3">
+      <div class="section-title" style="color:var(--purple)">🧠 Adaptive Learning</div>
+      <ul class="bullet" style="font-size:.82rem">
+        <li>Records every recommendation with input + predicted output</li>
+        <li>Stores up to 200 recommendations in localStorage</li>
+        <li>Farmer submits actual yield → computes correction factor</li>
+        <li>Correction = actual_yield / predicted_yield (per crop)</li>
+        <li>Blends: 70% model + 30% learned correction</li>
+        <li>Blend weight grows with more feedback (max 30%)</li>
+        <li>Accuracy tracked: within 20% = 'correct'</li>
+        <li>Builds personal profiles per crop</li>
+      </ul>
+    </div>
+    <div class="card green slide-right d4">
+      <div class="section-title" style="color:var(--accent1)">📝 Farmer Feedback</div>
+      <ul class="bullet">
+        <li>Submit: actual yield, fertilizer used, satisfaction (1-5)</li>
+        <li>Accuracy = 1 − |predicted − actual| / predicted</li>
+        <li>Trend analysis: first-half vs second-half accuracy</li>
+        <li>Per-crop accuracy breakdown</li>
+        <li>Status: Awaiting → Learning (1+) → Active (5+)</li>
+        <li>Data persisted (last 50 entries)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 17b: Adaptive Learning Loop ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">🧠 Adaptive Learning Loop</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Self-improving feedback cycle blending model predictions with farmer outcomes (70/30)</div>
+  <div class="scale-in d3" style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;padding:8px 0">
+    <img src="adaptive_learning_loop.png" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:14px;box-shadow:0 4px 40px rgba(167,139,250,.22)" alt="Adaptive Learning Loop">
+  </div>
+</div>
+
+<!-- ═══ SLIDE 18: Scenario Simulator ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Scenario Simulator (What-If Analysis)</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Explore impact of different conditions on yield, cost, and sustainability</div>
+  <div class="pop d3" style="flex:1;overflow:auto">
+    <table>
+      <tr><th>Scenario</th><th>Modifications</th><th>Use Case</th></tr>
+      <tr><td>📉 Reduce Fertilizer 30%</td><td>N, P, K × 0.7</td><td>Cost saving analysis</td></tr>
+      <tr><td>📈 Increase Fertilizer 30%</td><td>N, P, K × 1.3</td><td>Yield maximization</td></tr>
+      <tr><td>🏜️ Drought</td><td>Rain=20mm, Moisture=20%</td><td>Drought preparedness</td></tr>
+      <tr><td>🌧️ Heavy Rainfall</td><td>Rain=350mm, Moisture=85%</td><td>Flood risk planning</td></tr>
+      <tr><td>🌡️ Heat Wave</td><td>Temp=42°C, Humidity=30%</td><td>Extreme heat response</td></tr>
+      <tr><td>✨ Optimal Conditions</td><td>All params at ideal values</td><td>Best-case benchmarking</td></tr>
+    </table>
+  </div>
+  <div class="fade-up d5" style="color:var(--dim);margin-top:12px;font-size:.88rem">Each scenario computes: Δ Yield (t/ha), Δ Cost (₹), Δ Environmental Impact, and generates a natural-language recommendation.</div>
+</div>
+
+<!-- ═══ SLIDE 19: Explainability ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Explainability & Smart Alerts</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Every recommendation comes with human-readable reasoning</div>
+  <div class="row">
+    <div class="card blue slide-left d3">
+      <div class="section-title" style="color:var(--accent2)">💡 Model Explainability</div>
+      <ul class="bullet">
+        <li>Feature Importance via correlation analysis</li>
+        <li>Top-3 influencing features shown per recommendation</li>
+        <li>Nutrient-specific explanations</li>
+        <li>Environmental context notes</li>
+        <li>Yield context: above/below average for crop</li>
+        <li>Sustainability badges earned</li>
+      </ul>
+    </div>
+    <div class="card orange slide-right d4">
+      <div class="section-title" style="color:var(--accent3)">🔔 Smart Alerts</div>
+      <table>
+        <tr><th>Level</th><th>Trigger</th><th>Message</th></tr>
+        <tr><td>🔴 Critical</td><td>pH &lt; 4.5</td><td>Apply lime</td></tr>
+        <tr><td>🔴 Critical</td><td>Moisture &lt; 20%</td><td>Irrigate first</td></tr>
+        <tr><td>🟡 Warning</td><td>pH &lt; 5.5</td><td>Acidic soil</td></tr>
+        <tr><td>🟡 Warning</td><td>pH &gt; 8.5</td><td>Apply gypsum</td></tr>
+        <tr><td>🟡 Warning</td><td>N &lt; 20</td><td>Yellowing leaves</td></tr>
+        <tr><td>🟡 Warning</td><td>Temp &gt; 40°C</td><td>Apply early AM</td></tr>
+        <tr><td>🟢 Info</td><td>Low deficits</td><td>Minimal fert needed</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 20: Tech Stack ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Technology Stack & Key Metrics</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="row" style="margin-top:20px">
+    <div class="card blue slide-left d3">
+      <div class="section-title" style="color:var(--accent2)">⚡ Technology Stack</div>
+      <ul class="bullet">
+        <li>Frontend: Vanilla JavaScript (ES6 Modules)</li>
+        <li>Styling: CSS3 with Glassmorphism design</li>
+        <li>Build: Vite for bundling and dev server</li>
+        <li>ML: Custom Random Forest + Gradient Boosting (no libs)</li>
+        <li>Storage: localStorage for adaptive learning + history</li>
+        <li>Charts: Custom SVG / Canvas charting</li>
+        <li>Deployment: Static hosting (Vercel / Netlify)</li>
+        <li>Zero server dependencies — 100% in browser</li>
+      </ul>
+    </div>
+    <div class="card green slide-right d4">
+      <div class="section-title" style="color:var(--accent1)">📊 Key Metrics</div>
+      <table>
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Training Samples</td><td>2,000 synthetic</td></tr>
+        <tr><td>Feature Dimensions</td><td>18 (8 + 10)</td></tr>
+        <tr><td>Supported Crops</td><td>10</td></tr>
+        <tr><td>Fertilizer Classes</td><td>7</td></tr>
+        <tr><td>RF Trees</td><td>15</td></tr>
+        <tr><td>GB Estimators</td><td>50</td></tr>
+        <tr><td>Risk Categories</td><td>7</td></tr>
+        <tr><td>Sustainability Components</td><td>6</td></tr>
+        <tr><td>Code Modules</td><td>12</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 21: Roadmap ═══ -->
+<div class="slide">
+  <div class="slide-title fade-up d1">Future Roadmap</div>
+  <div class="accent-bar fade d2"></div>
+  <div class="subtitle fade-up d2">Planned enhancements for the next phase</div>
+  <div class="card-grid">
+    <div class="card green pop d3" style="text-align:center"><div style="color:var(--accent1);font-weight:700;margin-bottom:6px">Phase 1</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:8px">Real Weather API</div><div style="color:var(--light);font-size:.85rem">Connect to IMD / OpenWeather for live forecast data</div></div>
+    <div class="card blue pop d4" style="text-align:center"><div style="color:var(--accent2);font-weight:700;margin-bottom:6px">Phase 2</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:8px">Satellite Imagery</div><div style="color:var(--light);font-size:.85rem">Use NDVI from Sentinel-2 for crop health monitoring</div></div>
+    <div class="card orange pop d5" style="text-align:center"><div style="color:var(--accent3);font-weight:700;margin-bottom:6px">Phase 3</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:8px">Backend + Auth</div><div style="color:var(--light);font-size:.85rem">Node.js/Firebase backend for data persistence</div></div>
+    <div class="card pink pop d6" style="text-align:center"><div style="color:var(--accent4);font-weight:700;margin-bottom:6px">Phase 4</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:8px">Mobile App</div><div style="color:var(--light);font-size:.85rem">Offline-capable React Native app for rural farmers</div></div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 22: Thank You ═══ -->
+<div class="slide">
+  <div class="deco deco-1" style="opacity:.08;width:500px;height:500px;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--accent1)"></div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+    <div class="bounce d1" style="font-size:3.5rem;font-weight:900;color:var(--accent1)">Thank You!</div>
+    <div class="fade-up d3" style="font-size:1.5rem;margin-top:16px">AgriML — Empowering Farmers with AI</div>
+    <div class="fade-up d5" style="font-size:1.2rem;color:var(--dim);margin-top:14px">Questions & Discussion</div>
+    <div class="fade-up d7" style="font-size:1rem;color:var(--accent2);margin-top:30px">🌾 Smart Fertilizer • 📊 Yield Prediction • 🌦️ Climate Aware • ♻️ Sustainable</div>
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<script>
+let current = 0;
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+
+function showSlide(n, dir='right') {
+  if (n < 0 || n >= total || n === current) return;
+  const prev = slides[current];
+  const next = slides[n];
+
+  // Remove old anim classes
+  slides.forEach(s => s.classList.remove('active','enter-right','exit-left','enter-left','exit-right'));
+
+  if (dir === 'right') {
+    prev.classList.add('exit-left');
+    next.classList.add('enter-right','active');
+  } else {
+    prev.classList.add('exit-right');
+    next.classList.add('enter-left','active');
+  }
+
+  current = n;
+  document.getElementById('counter').textContent = `${current+1} / ${total}`;
+  document.getElementById('progress').style.width = `${((current+1)/total)*100}%`;
+
+  // Clean up after animation
+  setTimeout(() => {
+    prev.classList.remove('exit-left','exit-right');
+    prev.style.opacity = '0';
+    prev.style.pointerEvents = 'none';
+  }, 650);
+}
+
+function next() { showSlide(current + 1, 'right'); }
+
+function downloadPDF() {
+  // Show all slides for print, then restore
+  document.title = 'AgriML_Fertilizer_Presentation';
+  window.print();
+}
+function prev() { showSlide(current - 1, 'left'); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); next(); }
+  if (e.key === 'ArrowLeft' || e.key === 'Backspace') { e.preventDefault(); prev(); }
+  if (e.key === 'Home') { e.preventDefault(); showSlide(0, 'left'); }
+  if (e.key === 'End') { e.preventDefault(); showSlide(total-1, 'right'); }
+});
+
+// Touch support
+let touchX = 0;
+document.addEventListener('touchstart', e => touchX = e.touches[0].clientX);
+document.addEventListener('touchend', e => {
+  const diff = e.changedTouches[0].clientX - touchX;
+  if (diff < -50) next();
+  if (diff > 50) prev();
+});
+
+// Init
+document.getElementById('counter').textContent = `1 / ${total}`;
+document.getElementById('progress').style.width = `${(1/total)*100}%`;
+</script>
+</body>
+</html>
